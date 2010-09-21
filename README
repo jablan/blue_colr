@@ -1,0 +1,42 @@
+= blue_colr, database-based process launcher
+
+== Overview
+
+blue_colr allows you to easily launch processes using database as a queue. It
+consists of +process_daemon+, a deamon that executes whatever finds in a queue,
+and a DSL for enqueuing processes that enables you to easily describe the order
+and dependencies of processes.
+
+== Example
+
+  require 'blue_colr'
+
+  BlueColr.start do
+    run 'echo These processes'
+    run 'echo will be ran sequentially.'
+    parallel do
+      run 'echo And these'
+      sequential do
+        run 'echo (but not'
+        run 'echo these two)'
+      end
+      run 'echo in parallel.'
+    end
+    run 'echo These will execute'
+    run 'echo after all above are finished.'
+  end
+
+Previous code will queue processes within the database, keeping them in
+dependency order. Those within +sequential+ block (and in root block, by
+default) will run each after the one before finishes. Those within +parallel+
+block will run in parallel. The commands after +parallel+ block will be executed
+after _all_ the commands in +parallel+ block are sucessfully finished.
+
+Note: the code above will not _start_ the processes by itself, but enqueue them
+to the databse, by default. A separate process called <tt>process_daemon.rb</tt> is
+used for that.
+
+== <tt>process_daemon.rb</tt>
+
+Process daemon is constantly running, checking the database for newly enqueued
+processes, and executing them, observing the order.
