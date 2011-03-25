@@ -1,0 +1,10 @@
+db_url: postgres://test:test@localhost:5432/test
+log_path: './logs/%Y/%m/%d'
+environment: test
+
+error_log_msg: |
+  Process failed:
+  Command: %{cmd}
+  Description: %{description}
+  https://your.host/path/to/log/%{id}
+

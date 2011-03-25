@@ -1,0 +1,186 @@
+#!/usr/bin/env ruby
+
+# daemon to run blue_colr processes
+
+require "rubygems"
+require 'date'
+require 'yaml'
+begin
+  require 'log4r' # try using log4r if available
+  require 'log4r/yamlconfigurator'
+#  include Log4r
+rescue LoadError
+  require 'logger' # otherwise, use plain ruby's one
+end
+require "optparse"
+require 'sequel'
+require 'blue_colr'
+require 'fileutils'
+
+def logger(name = nil)
+  @logger[name || @environment] || @logger['default']
+end
+
+def init_logger
+  if @conf['log4r_config']
+    puts "entered @conf"
+    log_cfg = Log4r::YamlConfigurator # shorthand
+    log_cfg['ENVIRONMENT'] = @environment if @environment
+    log_cfg['LOGFILENAME'] = @log_file
+
+    puts "before decoding"
+    # load the YAML file with this
+    log_cfg.decode_yaml(@conf['log4r_config'])
+
+    puts "yaml decoded"
+    @logger = Log4r::Logger
+    p @logger
+  else
+    @logger = {'default' => Logger.new(@log_file)}
+  end
+  logger.level = @args['debuglevel'] || Logger::WARN
+end
+
+def parse_command_line(args)
+  data = {}
+  
+  OptionParser.new do |opts|
+    opts.banner = "Usage: bluecolrd [options]"
+  
+    opts.on("-c CONFIG", "--conf CONFIG", "YAML config file") do |config|
+      data["config"] = config
+    end
+
+    opts.on("-e NAME", "--environment NAME", "Environment name (e.g. test, production etc.) to work on (default none)") do |env|
+      data["environment"] = env
+    end
+    
+    opts.on("-m COUNT", "--max-count COUNT", "Max number of simultaneous processes to start.") do |count|
+      data["max"] = count.to_i
+    end
+
+    opts.on("-l LOGFILE", "--logfile LOGFILE", "File to log to.") do |logfile|
+      data["logfile"] = logfile
+    end
+
+    opts.on("-d LEVEL", "--debuglevel LEVEL", "Debug level to use (0 - DEBUG, 1 - INFO etc).") do |level|
+      data['debuglevel'] = level.to_i
+    end
+
+    opts.on_tail('-h', '--help', 'display this help and exit') do
+      puts opts
+      return nil
+    end
+    
+    opts.parse(args)
+  end
+  
+  return data
+end
+
+# check whether it's ok to spawn another process
+def ok_to_run?
+  # check the limit of max processes, if given TODO: @pids is not used anymore, this is not working.
+  @max_processes == 0 || @pids.size < @max_processes
+#  !@args['max'] || @pids.size < @args['max']
+end
+
+def run process
+  logger.debug "Running #{process[:module_name]}"
+  script = process[:cmd]
+  logger.debug script
+  id = process[:id]
+
+  # update process item in the db
+  # set status of process_item to "running"
+  @db[:process_items].filter(:id => id).update(:status => BlueColr::STATUS_RUNNING, :started_at => Time.now)
+
+  log_path = @conf['log_path'] || '.'
+  log_path = (process[:process_from] || Time.now).strftime(log_path) # interpolate date
+
+  FileUtils.mkdir_p log_path
+  log_file = File.join(log_path, "#{id}.out")
+  # run actual command
+  Thread.new do
+    begin
+      Dir.chdir(process[:chdir]) if process[:chdir]
+      Kernel.system("#{script} >> #{log_file} 2>&1")
+      ok = $?.success?
+      exitstatus = $?.exitstatus
+    rescue
+      # do nothing, just exit with error
+      # this usually means that exec tried to execute a file that doesn't exist
+      ok = false
+      exitstatus = 99
+    end
+
+    # find corresponding process_item
+    # change its status in the DB and update ended_at timestamp
+    @db[:process_items].filter(:id => process[:id]).update(
+      :status => ok ? BlueColr::STATUS_OK : BlueColr::STATUS_ERROR,
+      :exit_code => exitstatus,
+      :ended_at => Time.now
+    )
+    logger(process[:logger]).error(@error_log_msg % process.to_hash) unless ok
+
+    logger.info "Process ended: id #{process[:id]} #{$?}"
+  end
+end
+
+# MAIN PROGRAM STARTS HERE
+
+# pid => process, hash of started processes
+@pids = {}
+
+  @args = parse_command_line(ARGV)
+
+  raise "No configuration file defined (-c <config>)." unless @args && @args["config"]
+  raise "Couldn't read #{@args["config"]} file." unless @args['config'] && @conf = YAML::load(File.new(@args["config"]).read)
+  @max_processes = @args['max'] || @conf['max_processes'] || 0 # default unlimited
+  @environment = @args['environment'] || @conf['environment'] || nil
+  @log_file = @args['logfile'] || "process_daemon_#{@environment}"
+  @error_log_msg = @conf['error_log_msg'] || 'Process failed: id %{id}'
+
+  init_logger
+
+begin
+  @db = Sequel.connect(@conf['db_url'], :logger => logger('sequel')) # try to use sequel logger, if defined
+
+  logger.info 'Starting daemon'
+
+  loop do
+    # get all pending items
+    query = "select i.id
+from process_items i
+left join process_item_dependencies d ON i.id = d.process_item_id
+left join process_items i2 ON d.depends_on_id = i2.id and i2.status NOT IN ('#{BlueColr::STATUS_OK}', '#{BlueColr::STATUS_SKIPPED}')
+where i.status = '#{BlueColr::STATUS_PENDING}' and i.environment = ?
+group by i.id
+having count(i2.id) = 0"
+    process_items = @db[query, @environment]
+
+    process_items.each do |id|
+      logger.debug "Pending item: #{id.inspect}"
+      if ok_to_run?
+        item = @db[:process_items].filter(:id => id[:id]).first
+        run(item)
+      end
+    end
+    sleep(@conf['sleep_interval'] || 10)
+  end
+
+rescue Interrupt
+  if logger
+    logger.fatal("Ctrl-C received, exiting")
+  else
+    puts "Ctrl-C received, exiting"
+  end
+  exit 1
+rescue Exception => ex
+  p ex.class
+  logger.fatal(ex.to_s) if logger
+  puts "#{ex.to_s} ==>"
+  puts ex.backtrace.join("\n")
+  exit 1
+end
+

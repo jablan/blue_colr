@@ -3,9 +3,19 @@
 == Overview
 
 blue_colr allows you to easily launch processes using database as a queue. It
-consists of +process_daemon+, a deamon that executes whatever finds in a queue,
+consists of +bluecolrd+, a deamon that executes whatever finds in a queue,
 and a DSL for enqueuing processes that enables you to easily describe the order
 and dependencies of processes.
+
+== Installation
+
+  git clone git://github.com/jablan/blue_colr.git
+  cd blue_colr
+  gem build blue_colr.gemspec
+  gem install blue_colr-0.0.6.gem
+
+You may want to install +log4r+ gem as well, as it provides more powerful logging
+features than builtin Ruby's +Logger+.
 
 == Example
 
@@ -33,10 +43,27 @@ block will run in parallel. The commands after +parallel+ block will be executed
 after _all_ the commands in +parallel+ block are sucessfully finished.
 
 Note: the code above will not _start_ the processes by itself, but enqueue them
-to the databse, by default. A separate process called <tt>process_daemon.rb</tt> is
+to the databse, by default. A separate process called +bluecolrd+ is
 used for that.
 
-== <tt>process_daemon.rb</tt>
+== <tt>bluecolrd</tt>
 
-Process daemon is constantly running, checking the database for newly enqueued
-processes, and executing them, observing the order.
+Blue_colr daemon is constantly running, checking the database for newly enqueued
+processes, and executing them in a subshell, observing the order.
+
+== Enviroments
+
+An environment is something like _category_ which you assign to a set of processes
+when enqueuing them. Then you can have multiple daemons running, each one of them
+targeting specific environment. That allows easy distribution of your tasks across
+multiple machines, while keeping them synchronized, like the following scenario:
+
+* Start tasks a and b on machine X and c on machine Y
+* When all above are sucessfully done, start task d on machine Z
+
+== ToDo
+
+* Scripts to create necessarry tables
+* Proper test code
+* Examples
+

@@ -1,0 +1,62 @@
+db_url: postgres://test:test@localhost:5432/test
+log_path: './logs/%Y/%m/%d'
+environment: test
+
+error_log_msg: |
+  Process failed:
+  Command: %{cmd}
+  Description: %{description}
+  https://your.host/path/to/log/%{id}
+
+log4r_config:
+
+  # define all loggers ...
+  loggers:
+    - name      : default
+      level     : INFO
+      trace     : 'false'
+      outputters:
+        - stdout
+#        - logfile
+    - name      : daily
+      level     : INFO
+#      additive  : 'false'
+      trace     : 'false'
+      outputters:
+        - stdout
+#        - logfile
+    - name      : test
+      level     : INFO
+#      additive  : 'false'
+      trace     : 'false'
+      outputters:
+        - stdout
+        - logfile
+    - name      : sequel
+      level     : WARN
+#      additive  : 'false'
+      trace     : 'false'
+      outputters:
+        - stdout
+        - logfile
+
+  # define all outputters (incl. formatters)      
+  outputters:
+    - type     : StdoutOutputter
+      name     : stdout
+#      level    : INFO
+      formatter:
+        date_pattern: '%Y-%m-%d %H:%M:%S'
+        pattern     : '%d %l: %m '
+        type        : PatternFormatter
+    - type        : FileOutputter
+      name        : logfile
+#      level       : INFO
+      trunc       : 'false'
+      filename: "#{LOGFILENAME}"
+#      filename: "#{DATEPATH}/#{CLASSNAME}.log"
+      formatter   :
+        date_pattern: '%Y-%m-%d %H:%M:%S'
+        pattern     : '%d %l: %m'
+        type        : PatternFormatter
+
