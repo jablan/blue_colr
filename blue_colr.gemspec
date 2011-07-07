@@ -18,6 +18,6 @@ Gem::Specification.new do |s|
   s.add_dependency "sequel"
 
   s.files        = Dir.glob("{bin,lib}/**/*") + %w(README.rdoc)
-  s.executables  = ['bluecolrd']
+  s.executables  = ['bluecolrd', 'bcrun']
   s.require_path = 'lib'
 end

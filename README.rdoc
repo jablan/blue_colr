@@ -43,13 +43,21 @@ block will run in parallel. The commands after +parallel+ block will be executed
 after _all_ the commands in +parallel+ block are sucessfully finished.
 
 Note: the code above will not _start_ the processes by itself, but enqueue them
-to the databse, by default. A separate process called +bluecolrd+ is
+to the database, by default. A separate process called +bluecolrd+ is
 used for that.
 
 == <tt>bluecolrd</tt>
 
 Blue_colr daemon is constantly running, checking the database for newly enqueued
 processes, and executing them in a subshell, observing the order.
+
+== <tt>bcrun</tt>
+
+This script is used to launch arbitrary command through blue_colr. You might want
+to do that if you want to keep track of the stuff you launch (as everything goes
+through a database table).
+
+  bcrun -c path_to_config.yaml -x "command to execute"
 
 == Enviroments
 
