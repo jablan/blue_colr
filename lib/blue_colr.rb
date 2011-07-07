@@ -58,6 +58,12 @@ class BlueColr
           raise "Couldn't read #{@args["config"]} file." unless @args['config'] && @conf = YAML::load(File.new(@args["config"]).read)
 
           @db_uri = @conf['db_url']
+          # setting default options that should be written along with all the records to process_items
+          if @conf['default_options']
+            @conf['default_options'].each do |k,v|
+              default_options.send("#{k}=", v)
+            end
+          end
         end
         @db = Sequel.connect(@db_uri, :logger => @log)
       end
@@ -89,7 +95,8 @@ class BlueColr
 
         opts.on_tail('-h', '--help', 'display this help and exit') do
           puts opts
-          return nil
+          exit
+#          return nil
         end
 
 #        begin

@@ -1,0 +1,23 @@
+#!/usr/bin/env ruby
+
+# utility to launch bluecolr processes
+
+require "rubygems"
+require 'blue_colr'
+
+BlueColr.log = Logger.new(STDOUT)
+cmd = ''
+
+BlueColr.custom_args do |opts|
+  opts.banner = "Usage: bcrun [options]"
+
+  opts.on("-x cmd", "--execute command", "Command to execute (enclose in quotes if contains parameters)") do |command|
+    cmd = command
+  end
+end
+
+# queuing processes sequentially
+BlueColr.launch do
+  run cmd
+end
+

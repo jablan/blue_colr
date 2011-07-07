@@ -23,18 +23,14 @@ end
 
 def init_logger
   if @conf['log4r_config']
-    puts "entered @conf"
     log_cfg = Log4r::YamlConfigurator # shorthand
     log_cfg['ENVIRONMENT'] = @environment if @environment
     log_cfg['LOGFILENAME'] = @log_file
 
-    puts "before decoding"
     # load the YAML file with this
     log_cfg.decode_yaml(@conf['log4r_config'])
 
-    puts "yaml decoded"
     @logger = Log4r::Logger
-    p @logger
   else
     @logger = {'default' => Logger.new(@log_file)}
   end
