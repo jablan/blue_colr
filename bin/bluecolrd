@@ -7,6 +7,7 @@ require 'date'
 require 'yaml'
 begin
   require 'log4r' # try using log4r if available
+  require 'log4r/outputter/emailoutputter'
   require 'log4r/yamlconfigurator'
 #  include Log4r
 rescue LoadError
