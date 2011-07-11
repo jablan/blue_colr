@@ -77,8 +77,8 @@ end
 
 # check whether it's ok to spawn another process
 def ok_to_run?
-  # check the limit of max processes, if given TODO: @pids is not used anymore, this is not working.
-  @max_processes == 0 || @pids.size < @max_processes
+  # check the limit of max processes, if given
+  @max_processes == 0 || ThreadGroup::Default.list.size <= @max_processes
 #  !@args['max'] || @pids.size < @args['max']
 end
 
@@ -161,6 +161,8 @@ having count(i2.id) = 0"
       if ok_to_run?
         item = @db[:process_items].filter(:id => id[:id]).first
         run(item)
+      else
+        logger.debug "No available thread, waiting"
       end
     end
     sleep(@conf['sleep_interval'] || 10)

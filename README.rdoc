@@ -46,6 +46,20 @@ Note: the code above will not _start_ the processes by itself, but enqueue them
 to the database, by default. A separate process called +bluecolrd+ is
 used for that.
 
+== Requirements and Configuration
+
+Blue_colr uses a relational database to simulate a process queue so you will have
+to provide one. It relies on two tables, named +process_items+ and
++process_item_dependencies+ to work. +db/+ directory contains Postgresql scripts
+for creating these two, and this should be moved to Sequel migration later.
+
+In order to access the database, blue_colr requires sequel ORM library, if you
+don't have it, its gem will be installed along with blue_colr.
+
+Basic configuration is passed to blue_colr either by setting options from your
+code, or (if not set), blue_colr will parse your command line arguments and
+get the path to yaml configuration file, using +-c+ option.
+
 == <tt>bluecolrd</tt>
 
 Blue_colr daemon is constantly running, checking the database for newly enqueued
@@ -59,7 +73,7 @@ through a database table).
 
   bcrun -c path_to_config.yaml -x "command to execute"
 
-== Enviroments
+== Environments
 
 An environment is something like _category_ which you assign to a set of processes
 when enqueuing them. Then you can have multiple daemons running, each one of them
@@ -71,7 +85,7 @@ multiple machines, while keeping them synchronized, like the following scenario:
 
 == ToDo
 
-* Scripts to create necessarry tables
-* Proper test code
+* Move db table creation scripts to Sequel migration
+* Write proper tests
 * Examples
 
