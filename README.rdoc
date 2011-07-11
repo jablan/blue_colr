@@ -9,10 +9,7 @@ and dependencies of processes.
 
 == Installation
 
-  git clone git://github.com/jablan/blue_colr.git
-  cd blue_colr
-  gem build blue_colr.gemspec
-  gem install blue_colr-0.0.6.gem
+  gem install blue_colr
 
 You may want to install +log4r+ gem as well, as it provides more powerful logging
 features than builtin Ruby's +Logger+.
