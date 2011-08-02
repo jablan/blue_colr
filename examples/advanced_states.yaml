@@ -1,0 +1,136 @@
+db_url: postgres://test:test@localhost/test
+
+default_options:
+  chdir: '/data/apps/aggregator'
+#  environment: 'test'
+
+log4r_config:
+
+  # define all loggers ...
+  loggers:
+    # default logger is kind of mandatory
+    - name      : default
+      level     : INFO
+      trace     : 'false'
+      outputters:
+        - stdout
+        - logfile
+    - name      : daily
+      level     : INFO
+      trace     : 'false'
+      outputters:
+        - stdout
+        - logfile
+    - name      : test
+      level     : INFO
+      trace     : 'false'
+      outputters:
+        - stdout
+        - logfile
+    - name      : neven
+      level     : INFO
+      trace     : 'false'
+      outputters:
+        - stdout
+        - logfile
+    - name      : sequel
+      level     : WARN
+      trace     : 'false'
+      outputters:
+        - stdout
+        - logfile
+
+  # define all outputters (incl. formatters)      
+  outputters:
+    - type     : StdoutOutputter
+      name     : stdout
+#      level    : INFO
+      formatter:
+        date_pattern: '%Y-%m-%d %H:%M:%S'
+        pattern     : '%d %l: %m '
+        type        : PatternFormatter
+
+    - type        : FileOutputter
+      name        : logfile
+#      level       : INFO
+      trunc       : 'false'
+      filename: "#{LOGFILENAME}"
+      formatter   :
+        date_pattern: '%Y-%m-%d %H:%M:%S'
+        pattern     : '%d %l: %m'
+        type        : PatternFormatter
+
+
+statemap:
+
+  on_pending:
+    PENDING:
+      -
+        - RUNNING
+        -
+          - OK
+          - OK_CLEAN
+          - OK_NM
+      -
+        - RUNNING_DIRTY
+        -
+          - ERROR_SKIPPED
+          - SKIPPED
+          - OK_NM
+          - OK_DIRTY
+          - OK
+
+    # not mandatory
+    PENDING_NM:
+      -
+        - RUNNING_NM
+        -
+          - OK
+          - OK_CLEAN
+          - OK_NM
+      -
+        - RUNNING_NM_DIRTY
+        -
+          - ERROR_SKIPPED
+          - SKIPPED
+          - OK_DIRTY
+          - OK_NM
+          - OK
+
+    PENDING_CLEAN:
+      -
+        - RUNNING_CLEAN
+        -
+          - OK
+          - OK_CLEAN
+
+  on_running:
+    RUNNING:
+      error: ERROR
+      ok: OK
+
+    RUNNING_DIRTY:
+      error: ERROR
+      ok: OK_DIRTY
+
+    RUNNING_NM:
+      error: ERROR_SKIPPED
+      ok: OK_NM
+
+    RUNNING_CLEAN:
+      error: ERROR_CLEAN
+      ok: OK_CLEAN
+
+    RUNNING_NM_DIRTY:
+      error: ERROR_SKIPPED
+      ok: OK_NM_DIRTY
+
+  on_restart:
+    ERROR: PENDING
+    ERROR_SKIPPED: PENDING_NM
+    ERROR_CLEAN: PENDING_CLEAN
+    OK: PENDING
+    OK_DIRTY: PENDING
+    OK_NM_DIRTY: PENDING_NM
+    OK_NM: PENDING_NM
+    OK_CLEAN: PENDING_CLEAN

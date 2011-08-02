@@ -25,8 +25,8 @@ Given /^I created task "([^"]*)" with status "([^"]*)" which executes "([^"]*)" 
   @task_names[name] = id
 end
 
-When /^I run daemon for (\d+) secs$/ do |time|
-  @pid = Process.spawn('./bin/bluecolrd -c examples/advanced_states.yaml')
+When /^I run daemon for (\d+) secs using "([^"]*)"$/ do |time, conf|
+  @pid = Process.spawn("./bin/bluecolrd -c #{conf}", :out=>"/dev/null")
   Kernel.sleep time.to_i
   Process.kill('SIGTERM', @pid)
 end

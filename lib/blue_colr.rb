@@ -52,7 +52,6 @@ class BlueColr
         raise "No configuration file defined (-c <config>)." if @args["config"].nil?
         raise "Couldn't read #{@args["config"]} file." unless @args['config'] && @conf = YAML::load(File.new(@args["config"]).read)
 
-        @statemap = @conf['statemap'] # load optional statemap
         # setting default options that should be written along with all the records to process_items
         if @conf['default_options']
           @conf['default_options'].each do |k,v|
@@ -89,7 +88,7 @@ class BlueColr
     end
 
     def statemap
-      @statemap || DEFAULT_STATEMAP
+      @statemap ||= conf['statemap'] || DEFAULT_STATEMAP
     end
 
     def sequential &block
@@ -157,6 +156,8 @@ class BlueColr
     
     # get the next state from pending, given current state and state of all "parent" processes
     def state_from_pending current_state, parent_states
+      p parent_states
+      p self.statemap['on_pending'][current_state]
       new_state, _ = self.statemap['on_pending'][current_state].find { |_, required_parent_states|
         (parent_states - required_parent_states).empty?
       }
