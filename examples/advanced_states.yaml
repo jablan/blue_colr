@@ -1,7 +1,7 @@
 db_url: postgres://test:test@localhost/test
 
-default_options:
-  chdir: '/data/apps/aggregator'
+#default_options:
+#  chdir: '/data/apps/aggregator'
 #  environment: 'test'
 
 log4r_config:
@@ -11,30 +11,6 @@ log4r_config:
     # default logger is kind of mandatory
     - name      : default
       level     : INFO
-      trace     : 'false'
-      outputters:
-        - stdout
-        - logfile
-    - name      : daily
-      level     : INFO
-      trace     : 'false'
-      outputters:
-        - stdout
-        - logfile
-    - name      : test
-      level     : INFO
-      trace     : 'false'
-      outputters:
-        - stdout
-        - logfile
-    - name      : neven
-      level     : INFO
-      trace     : 'false'
-      outputters:
-        - stdout
-        - logfile
-    - name      : sequel
-      level     : WARN
       trace     : 'false'
       outputters:
         - stdout
@@ -59,7 +35,6 @@ log4r_config:
         date_pattern: '%Y-%m-%d %H:%M:%S'
         pattern     : '%d %l: %m'
         type        : PatternFormatter
-
 
 statemap:
 

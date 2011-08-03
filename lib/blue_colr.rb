@@ -39,7 +39,7 @@ class BlueColr
 
   class << self
     attr_accessor :environment
-    attr_writer :statemap, :log, :db, :db_uri
+    attr_writer :statemap, :log, :db, :db_uri, :conf
 
     def log
       @log ||= Logger.new('process_daemon')
@@ -156,8 +156,6 @@ class BlueColr
     
     # get the next state from pending, given current state and state of all "parent" processes
     def state_from_pending current_state, parent_states
-      p parent_states
-      p self.statemap['on_pending'][current_state]
       new_state, _ = self.statemap['on_pending'][current_state].find { |_, required_parent_states|
         (parent_states - required_parent_states).empty?
       }
