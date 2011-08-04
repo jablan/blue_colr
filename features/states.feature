@@ -1,47 +1,20 @@
 Feature: Basic states
   Basic states should be handled appropriately by the daemon
 
-  Scenario: Standard states, everything OK
-    Given I created task "a" with status "PENDING" which executes "echo a"
-    And I created task "b" with status "PENDING" which executes "echo b" and depends on task "a"
-    And I created task "c" with status "PENDING" which executes "echo c" and depends on task "b"
-    When I run daemon for 15 secs using "examples/basic.yaml"
-    Then task "a" should have status "OK"
-    And task "b" should have status "OK"
-    And task "c" should have status "OK"
+  Scenario Outline: Different starting ending states
+    Given I created task "a" with status "<start_a>" which executes "<cmd_a>"
+    And I created task "b" with status "<start_b>" which executes "<cmd_b>" and depends on task "a"
+    And I created task "c" with status "<start_c>" which executes "<cmd_c>" and depends on task "b"
+    When I run daemon for 15 secs using "<config>"
+    Then task "a" should have status "<end_a>"
+    And task "b" should have status "<end_b>"
+    And task "c" should have status "<end_c>"
 
-  Scenario: Standard states, middle process crashes
-    Given I created task "a" with status "PENDING" which executes "echo a"
-    And I created task "b" with status "PENDING" which executes "false b" and depends on task "a"
-    And I created task "c" with status "PENDING" which executes "echo c" and depends on task "b"
-    When I run daemon for 15 secs using "examples/basic.yaml"
-    Then task "a" should have status "OK"
-    And task "b" should have status "ERROR"
-    And task "c" should have status "PENDING"
+    Examples:
+      | start_a | cmd_a | end_a | start_b | cmd_b | end_b | start_c | cmd_c | end_c | config |
+      | PENDING | echo a | OK | PENDING | echo b | OK | PENDING | echo c | OK | examples/basic.yaml |
+      | PENDING | echo a | OK | PENDING | false b | ERROR | PENDING | echo c | PENDING | examples/basic.yaml |
+      | PENDING | echo a | OK | PENDING_NM | echo b | OK_NM | PENDING | echo c | OK | examples/advanced_states.yaml |
+      | PENDING | echo a | OK | PENDING_NM | false b | ERROR_SKIPPED | PENDING | echo c | OK_DIRTY | examples/advanced_states.yaml |
+      | PENDING | echo a | OK | PENDING_NM | false b | ERROR_SKIPPED | PENDING_CLEAN | echo c | PENDING_CLEAN | examples/advanced_states.yaml |
 
-  Scenario: Advanced states, everything OK
-    Given I created task "a" with status "PENDING" which executes "echo a"
-    And I created task "b" with status "PENDING_NM" which executes "echo b" and depends on task "a"
-    And I created task "c" with status "PENDING" which executes "echo c" and depends on task "b"
-    When I run daemon for 15 secs using "examples/advanced_states.yaml"
-    Then task "a" should have status "OK"
-    And task "b" should have status "OK_NM"
-    And task "c" should have status "OK"
-
-  Scenario: Advanced states, middle broke
-    Given I created task "a" with status "PENDING" which executes "echo a"
-    And I created task "b" with status "PENDING_NM" which executes "false b" and depends on task "a"
-    And I created task "c" with status "PENDING" which executes "echo c" and depends on task "b"
-    When I run daemon for 15 secs using "examples/advanced_states.yaml"
-    Then task "a" should have status "OK"
-    And task "b" should have status "ERROR_SKIPPED"
-    And task "c" should have status "OK_DIRTY"
-
-  Scenario: Advanced states, middle broke, last clean
-    Given I created task "a" with status "PENDING" which executes "echo a"
-    And I created task "b" with status "PENDING_NM" which executes "false b" and depends on task "a"
-    And I created task "c" with status "PENDING_CLEAN" which executes "echo c" and depends on task "b"
-    When I run daemon for 15 secs using "examples/advanced_states.yaml"
-    Then task "a" should have status "OK"
-    And task "b" should have status "ERROR_SKIPPED"
-    And task "c" should have status "PENDING_CLEAN"

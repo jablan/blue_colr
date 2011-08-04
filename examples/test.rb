@@ -6,7 +6,6 @@ def test
 end
 
 BlueColr.default_options.environment = 'test'
-BlueColr.default_options.process_from = Date.today
 
 BlueColr.launch do
   # by default, execute commands sequentially
