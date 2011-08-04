@@ -15,6 +15,10 @@ end
 After do
 end
 
+Transform /^(-?\d+)$/ do |number|
+  number.to_i
+end
+
 Given /^I created task "([^"]*)" with status "([^"]*)" which executes "([^"]*)"$/ do |name, status, cmd|
   id = @bc.enqueue(cmd, [], :status => status)
   @task_names[name] = id
@@ -31,7 +35,45 @@ When /^I run daemon for (\d+) secs using "([^"]*)"$/ do |time, conf|
   Process.kill('SIGTERM', @pid)
 end
 
+When /^I run daemon for (\d+) secs using "([^"]*)" with max (\d+) parallel tasks$/ do |time, conf, parallel_count|
+  @pid = Process.spawn("./bin/bluecolrd -c #{conf} -m #{parallel_count}", :out=>"/dev/null")
+  Kernel.sleep time.to_i
+  Process.kill('SIGTERM', @pid)
+end
+
 Then /^task "([^"]*)" should have status "([^"]*)"$/ do |name, status|
   DB[:process_items].filter(:id => @task_names[name]).first[:status].should == status
+end
+
+# parallel test
+
+Given /^I created (\d+) parallel tasks of (\d+) second each$/ do |taskcount, duration|
+  BlueColr.launch do
+    parallel do
+      taskcount.times do
+        run "sleep #{duration}"
+      end
+    end
+  end
+end
+
+Then /^all tasks should be executed within (\d+) to (\d+) seconds$/ do |time_min, time_max|
+  times = DB[:process_items].inject([]) do |acc, pi|
+    st, et = pi[:started_at], pi[:ended_at]
+    acc + [[st, :start], [et, :end]]
+  end
+  times = times.sort_by(&:first)
+  total, _, _ = times.inject([0.0, 0, nil]) do |(total, level, last_start), (time, type)|
+    if type == :start
+      last_start = time if level == 0
+      level += 1
+    else
+      total += time - last_start if level == 1
+      level -= 1
+    end
+    [total, level, last_start]
+  end
+  puts "Total: #{total}"
+  (time_min..time_max).should === total
 end
 
