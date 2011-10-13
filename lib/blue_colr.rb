@@ -152,7 +152,9 @@ class BlueColr
   def enqueue cmd, waitfor = [], opts = {}
     id = nil
     def_opts = self.class.default_options.send(:table) # convert from OpenStruct to Hash
-    id = db[:process_items].insert(def_opts.merge(opts).merge(:status => STATUS_PREPARING, :cmd => cmd, :queued_at => Time.now))
+    # rejecting fields that do not have corresponding column in the table:
+    fields = def_opts.merge(opts).select{|k,_| db[:process_items].columns.member? k}
+    id = db[:process_items].insert(fields.merge(:status => STATUS_PREPARING, :cmd => cmd, :queued_at => Time.now))
     waitfor.each do |wid|
       db[:process_item_dependencies].insert(:process_item_id => id, :depends_on_id => wid)
     end
