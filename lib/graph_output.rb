@@ -4,24 +4,29 @@ module GraphOutput
 
   def self.included target
     target.instance_eval do
+      # graph nodes are given unique ids
       def next_id
         @id ||= 0
         @id += 1
       end
 
-      def get_color environment
+      # gets different color for different environments,
+      # currently cycling between couple predefined colors
+      # TODO: enable submitting color through option
+      def get_color group
         colors = [
           '#FFFFFF',
           '#EEFFEE',
           '#EEEEFF',
           '#FFEEEE'
         ]
-        @environments ||= []
-        @environments << environment unless @environments.member? environment
-        colors[@environments.index(environment) % colors.length]
+        @groups ||= []
+        @groups << group unless @groups.member? group
+        colors[@groups.index(group) % colors.length]
       end
 
-      # override class method launch
+      # override class method launch, we are creating output file here,
+      # and we don't need database
       def launch &block
         default_options.gv_filename ||= "output.dot"
         worker = self.new
@@ -39,15 +44,21 @@ module GraphOutput
     end
   end
 
+  # original enqueue enqueues the process to the database,
+  # here we should just output a graph elements to the output file
   def graph_enqueue cmd, waitfor = [], opts = {}
     gv_file = self.class.default_options.gv_file
     id = self.class.next_id
     waitfor.each do |wid|
+      # output graph edges
       gv_file.puts "  b#{wid} -> b#{id};"
     end
+    # determine node label
     label = opts[:label] || cmd
     label.gsub!(/([^\\])"/, '\1""')
-    color = self.class.get_color(opts[:environment])
+    # determine node color
+    color = self.class.get_color(opts[:group] || opts[:environment])
+    # output node description
     gv_file.puts "  b#{id} [shape=box,style=filled,fillcolor=\"#{color}\",label=\"#{label}\"];"
     # remember id
     @all_ids << id
