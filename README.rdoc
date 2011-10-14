@@ -45,13 +45,15 @@ used for that.
 
 == Requirements and Configuration
 
+In order to access the database, blue_colr requires sequel ORM library, if you
+don't have it, its gem will be installed along with blue_colr.
+
 Blue_colr uses a relational database to simulate a process queue so you will have
 to provide one. It relies on two tables, named +process_items+ and
 +process_item_dependencies+ to work. +db/+ directory contains Sequel migrations
-for creating these two.
+for creating these two:
 
-In order to access the database, blue_colr requires sequel ORM library, if you
-don't have it, its gem will be installed along with blue_colr.
+  sequel -m db/ sqlite://examples/test.db
 
 Basic configuration is passed to blue_colr either by setting options from your
 code, or (if not set), blue_colr will parse your command line arguments and
