@@ -3,7 +3,8 @@ require 'blue_colr'
 require 'rspec'
 
 Before do
-  db_uri = 'postgres://test:test@localhost/test'
+  db_uri = 'sqlite://examples/test.db'
+#  db_uri = 'postgres://test:test@localhost/test'
   BlueColr.db_uri = db_uri
   DB = Sequel.connect(db_uri)
   DB[:process_item_dependencies].delete

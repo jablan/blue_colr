@@ -1,8 +1,4 @@
-db_url: postgres://test:test@localhost/test
-
-#default_options:
-#  chdir: '/data/apps/aggregator'
-#  environment: 'test'
+db_url: sqlite://examples/test.db
 
 log4r_config:
 
