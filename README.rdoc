@@ -18,7 +18,7 @@ features than builtin Ruby's +Logger+.
 
   require 'blue_colr'
 
-  BlueColr.start do
+  BlueColr.launch do
     run 'echo These processes'
     run 'echo will be ran sequentially.'
     parallel do
@@ -77,8 +77,8 @@ when enqueuing them. Then you can have multiple daemons running, each one of the
 targeting specific environment. That allows easy distribution of your tasks across
 multiple machines, while keeping them synchronized, like the following scenario:
 
-* Start tasks a and b on machine X and c on machine Y
-* When all above are sucessfully done, start task d on machine Z
+* Start tasks +a+ and +b+ on machine +X+ and +c+ on machine +Y+
+* When all above are sucessfully done, start task +d+ on machine +Z+
 
 == ToDo
 
