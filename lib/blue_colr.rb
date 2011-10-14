@@ -47,7 +47,7 @@ class BlueColr
 
     def conf
       unless @conf
-        @args = parse_command_line ARGV
+        parse_command_line unless @args
 
         raise "No configuration file defined (-c <config>)." if @args["config"].nil?
         raise "Couldn't read #{@args["config"]} file." unless @args['config'] && @conf = YAML::load(File.new(@args["config"]).read)
@@ -121,8 +121,8 @@ class BlueColr
       exit worker.wait
     end
 
-    def parse_command_line(args)
-      data = Hash.new()
+    def parse_command_line &block
+      data = {}
 
       OptionParser.new do |opts|
         opts.banner = "Usage: process_daemon.rb [options]"
@@ -132,7 +132,7 @@ class BlueColr
         end
 
         # process custom args, if given
-        @custom_args_block.call(opts) if @custom_args_block
+        block.call(opts) if block_given?
 
         opts.on_tail('-h', '--help', 'display this help and exit') do
           puts opts
@@ -141,14 +141,14 @@ class BlueColr
         end
 
 #        begin
-          opts.parse(args)
+          opts.parse(ARGV)
 #        rescue OptionParser::InvalidOption
 #          # do nothing
 #        end
 
       end
 
-      return data
+      @args = data
     end
 
 
