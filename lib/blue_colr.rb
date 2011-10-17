@@ -127,7 +127,7 @@ class BlueColr
       data = {}
 
       OptionParser.new do |opts|
-        opts.banner = "Usage: process_daemon.rb [options]"
+        opts.banner = "Usage: #{File.basename($0)} [options]"
 
         opts.on("-c CONFIG", "--conf CONFIG", "YAML config file") do |config|
           data["config"] = config
