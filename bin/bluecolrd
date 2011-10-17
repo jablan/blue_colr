@@ -149,7 +149,7 @@ begin
 
   loop do
     # get all pending items
-    pending_processes = @db[:process_items].filter(:status => BlueColr.get_pending_states).all
+    pending_processes = @db[:process_items].filter(:status => BlueColr.get_pending_states).filter(:environment => @environment).all
     pending_processes = pending_processes.map do |process|
       # get all the parents' statuses
       parent_statuses = @db[:process_items].

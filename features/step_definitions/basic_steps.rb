@@ -14,6 +14,8 @@ Before do
 end
 
 After do
+  DB[:process_item_dependencies].delete
+  DB[:process_items].delete
 end
 
 Transform /^(-?\d+)$/ do |number|
@@ -30,8 +32,19 @@ Given /^I created task "([^"]*)" with status "([^"]*)" which executes "([^"]*)" 
   @task_names[name] = id
 end
 
+Given /^I created a successful task "([^"]*)" in environment "([^"]*)"$/ do |name, env|
+  id = @bc.enqueue("true", [], :environment => env)
+  @task_names[name] = id
+end
+
 When /^I run daemon for (\d+) secs using "([^"]*)"$/ do |time, conf|
   @pid = Process.spawn("./bin/bluecolrd -c #{conf}", :out=>"/dev/null")
+  Kernel.sleep time.to_i
+  Process.kill('SIGTERM', @pid)
+end
+
+When /^I run daemon for (\d+) secs using "([^"]*)" in environment "([^"]*)"$/ do |time, conf, env|
+  @pid = Process.spawn("./bin/bluecolrd -c #{conf} -e #{env}", :out=>"/dev/null")
   Kernel.sleep time.to_i
   Process.kill('SIGTERM', @pid)
 end

@@ -9,18 +9,14 @@ require 'optparse'
 require 'yaml'
 require 'sequel'
 
-
+# This class provides a DSL for enqueuing processes, at the same time describing their mutual dependance.
 class BlueColr
-#  STATUS_OK = 'ok'
-#  STATUS_ERROR = 'error'
-#  STATUS_PENDING = 'pending'
-#  STATUS_RUNNING = 'running'
-#  STATUS_PREPARING = 'preparing'
-#  STATUS_SKIPPED = 'skipped'
 
-  # default state transitions with simple state setup ('PENDING => RUNNING => OK or ERROR')
+  # If no alternative statemap is provided, all newly launched processes will have this state by default.
   DEFAULT_PENDING_STATE = 'pending'
+  # Used internally.
   PREPARING_STATE = 'preparing'
+  # Default state transitions with simple state setup ('PENDING => RUNNING => OK or ERROR')
   DEFAULT_STATEMAP = {
     'on_pending' => {
       DEFAULT_PENDING_STATE => [
@@ -208,10 +204,14 @@ class BlueColr
     self.class.log
   end
 
+  # All processes enqueued within the given block should be executed sequentially,
+  # i.e. one after another.
   def sequential &block
     exec :sequential, &block
   end
 
+  # All processes enqueued within the given block should be executed in parallel
+  # (not waiting for each other to finish).
   def parallel &block
     exec :parallel, &block
   end
@@ -247,6 +247,15 @@ class BlueColr
     id
   end
 
+  # Enqueue a single command +cmd+.
+  #
+  # == Parameters
+  # cmd::
+  #   A string containing the command that should be executed.
+  # options::
+  #   A set of optional parameters which override default fields associated with the given command
+  #   (e.g. here you can specify different +:environment+ that the command should be launched in,
+  #   optional +:description+, or whatever you decide to store along the command).
   def run cmd, opts = {}
     id = enqueue cmd, @waitfor, opts
     if @type == :sequential
