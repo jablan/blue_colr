@@ -19,21 +19,23 @@ class BlueColr
 #  STATUS_SKIPPED = 'skipped'
 
   # default state transitions with simple state setup ('PENDING => RUNNING => OK or ERROR')
+  DEFAULT_PENDING_STATE = 'pending'
+  PREPARING_STATE = 'preparing'
   DEFAULT_STATEMAP = {
     'on_pending' => {
-      'PENDING' => [
-        ['RUNNING', ['OK', 'SKIPPED']]
+      DEFAULT_PENDING_STATE => [
+        ['running', ['ok', 'skipped']]
       ]
     },
     'on_running' => {
-      'RUNNING' => {
-        'error' => 'ERROR',
-        'ok' => 'OK'
+      'running' => {
+        'error' => 'error',
+        'ok' => 'ok'
       }
     },
     'on_restart' => {
-      'ERROR' => 'PENDING',
-      'OK' => 'PENDING'
+      'error' => 'pending',
+      'ok' => 'pending'
     }
   }
 
@@ -229,11 +231,11 @@ class BlueColr
 
   def enqueue cmd, waitfor = [], opts = {}
     id = nil
-    opts = {status: 'PENDING'}.merge(opts)
+    opts = {status: DEFAULT_PENDING_STATE}.merge(opts)
     def_opts = self.class.default_options.send(:table) # convert from OpenStruct to Hash
     # rejecting fields that do not have corresponding column in the table:
     fields = def_opts.merge(opts).select{|k,_| db[:process_items].columns.member? k}
-    id = db[:process_items].insert(fields.merge(:status => 'PREPARING', :cmd => cmd, :queued_at => Time.now))
+    id = db[:process_items].insert(fields.merge(:status => PREPARING_STATE, :cmd => cmd, :queued_at => Time.now))
     waitfor.each do |wid|
       db[:process_item_dependencies].insert(:process_item_id => id, :depends_on_id => wid)
     end

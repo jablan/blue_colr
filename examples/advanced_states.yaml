@@ -35,73 +35,73 @@ log4r_config:
 statemap:
 
   on_pending:
-    PENDING:
+    pending:
       -
-        - RUNNING
+        - running
         -
-          - OK
-          - OK_CLEAN
-          - OK_NM
+          - ok
+          - ok_clean
+          - ok_nm
       -
-        - RUNNING_DIRTY
+        - running_dirty
         -
-          - ERROR_SKIPPED
-          - SKIPPED
-          - OK_NM
-          - OK_DIRTY
-          - OK
+          - error_skipped
+          - skipped
+          - ok_nm
+          - ok_dirty
+          - ok
 
     # not mandatory
-    PENDING_NM:
+    pending_nm:
       -
-        - RUNNING_NM
+        - running_nm
         -
-          - OK
-          - OK_CLEAN
-          - OK_NM
+          - ok
+          - ok_clean
+          - ok_nm
       -
-        - RUNNING_NM_DIRTY
+        - running_nm_dirty
         -
-          - ERROR_SKIPPED
-          - SKIPPED
-          - OK_DIRTY
-          - OK_NM
-          - OK
+          - error_skipped
+          - skipped
+          - ok_dirty
+          - ok_nm
+          - ok
 
-    PENDING_CLEAN:
+    pending_clean:
       -
-        - RUNNING_CLEAN
+        - running_clean
         -
-          - OK
-          - OK_CLEAN
+          - ok
+          - ok_clean
 
   on_running:
-    RUNNING:
-      error: ERROR
-      ok: OK
+    running:
+      error: error
+      ok: ok
 
-    RUNNING_DIRTY:
-      error: ERROR
-      ok: OK_DIRTY
+    running_dirty:
+      error: error
+      ok: ok_dirty
 
-    RUNNING_NM:
-      error: ERROR_SKIPPED
-      ok: OK_NM
+    running_nm:
+      error: error_skipped
+      ok: ok_nm
 
-    RUNNING_CLEAN:
-      error: ERROR_CLEAN
-      ok: OK_CLEAN
+    running_clean:
+      error: error_clean
+      ok: ok_clean
 
-    RUNNING_NM_DIRTY:
-      error: ERROR_SKIPPED
-      ok: OK_NM_DIRTY
+    running_nm_dirty:
+      error: error_skipped
+      ok: ok_nm_dirty
 
   on_restart:
-    ERROR: PENDING
-    ERROR_SKIPPED: PENDING_NM
-    ERROR_CLEAN: PENDING_CLEAN
-    OK: PENDING
-    OK_DIRTY: PENDING
-    OK_NM_DIRTY: PENDING_NM
-    OK_NM: PENDING_NM
-    OK_CLEAN: PENDING_CLEAN
+    error: pending
+    error_skipped: pending_nm
+    error_clean: pending_clean
+    ok: pending
+    ok_dirty: pending
+    ok_nm_dirty: pending_nm
+    ok_nm: pending_nm
+    ok_clean: pending_clean

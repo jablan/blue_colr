@@ -12,9 +12,9 @@ Feature: Basic states
 
     Examples:
       | start_a | cmd_a | end_a | start_b | cmd_b | end_b | start_c | cmd_c | end_c | config |
-      | PENDING | echo a | OK | PENDING | echo b | OK | PENDING | echo c | OK | examples/basic.yaml |
-      | PENDING | echo a | OK | PENDING | false b | ERROR | PENDING | echo c | PENDING | examples/basic.yaml |
-      | PENDING | echo a | OK | PENDING_NM | echo b | OK_NM | PENDING | echo c | OK | examples/advanced_states.yaml |
-      | PENDING | echo a | OK | PENDING_NM | false b | ERROR_SKIPPED | PENDING | echo c | OK_DIRTY | examples/advanced_states.yaml |
-      | PENDING | echo a | OK | PENDING_NM | false b | ERROR_SKIPPED | PENDING_CLEAN | echo c | PENDING_CLEAN | examples/advanced_states.yaml |
+      | pending | echo a | ok | pending | echo b | ok | pending | echo c | ok | examples/basic.yaml |
+      | pending | echo a | ok | pending | false b | error | pending | echo c | pending | examples/basic.yaml |
+      | pending | echo a | ok | pending_nm | echo b | ok_nm | pending | echo c | ok | examples/advanced_states.yaml |
+      | pending | echo a | ok | pending_nm | false b | error_skipped | pending | echo c | ok_dirty | examples/advanced_states.yaml |
+      | pending | echo a | ok | pending_nm | false b | error_skipped | pending_clean | echo c | pending_clean | examples/advanced_states.yaml |
 
