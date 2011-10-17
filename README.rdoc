@@ -18,7 +18,7 @@ features than builtin Ruby's +Logger+.
 
   require 'blue_colr'
 
-  BlueColr.start do
+  BlueColr.launch do
     run 'echo These processes'
     run 'echo will be ran sequentially.'
     parallel do
@@ -45,13 +45,15 @@ used for that.
 
 == Requirements and Configuration
 
-Blue_colr uses a relational database to simulate a process queue so you will have
-to provide one. It relies on two tables, named +process_items+ and
-+process_item_dependencies+ to work. +db/+ directory contains Postgresql scripts
-for creating these two, and this should be moved to Sequel migration later.
-
 In order to access the database, blue_colr requires sequel ORM library, if you
 don't have it, its gem will be installed along with blue_colr.
+
+Blue_colr uses a relational database to simulate a process queue so you will have
+to provide one. It relies on two tables, named +process_items+ and
++process_item_dependencies+ to work. +db/+ directory contains Sequel migrations
+for creating these two:
+
+  sequel -m db/ sqlite://examples/test.db
 
 Basic configuration is passed to blue_colr either by setting options from your
 code, or (if not set), blue_colr will parse your command line arguments and
@@ -77,12 +79,12 @@ when enqueuing them. Then you can have multiple daemons running, each one of the
 targeting specific environment. That allows easy distribution of your tasks across
 multiple machines, while keeping them synchronized, like the following scenario:
 
-* Start tasks a and b on machine X and c on machine Y
-* When all above are sucessfully done, start task d on machine Z
+* Start tasks +a+ and +b+ on machine +X+ and +c+ on machine +Y+
+* When all above are sucessfully done, start task +d+ on machine +Z+
 
 == ToDo
 
-* Move db table creation scripts to Sequel migration
-* Write proper tests
+* More tests
+* Better docs
 * Examples
 
