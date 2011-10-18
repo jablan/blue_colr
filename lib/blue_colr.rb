@@ -1,8 +1,5 @@
-# This class provides a simple DSL for enqueuing processes to the database
-# in particular order.
-
 require 'rubygems'
-require 'date'
+#require 'date'
 require 'logger'
 require 'ostruct'
 require 'optparse'
@@ -43,6 +40,7 @@ class BlueColr
       @log ||= Logger.new('process_daemon')
     end
 
+    # Configuration hash read from yaml config file
     def conf
       unless @conf
         parse_command_line unless @args
@@ -60,13 +58,15 @@ class BlueColr
       @conf
     end
 
+    # Sequel DB URI connection string
     def db_uri
       unless @db_uri # get the config from command line
         @db_uri = self.conf['db_url']
       end
       @db_uri
     end
-    
+
+    # Sequel DB connection instance
     def db
       unless @db # not connected
         @db = Sequel.connect(self.db_uri, :logger => self.log)
@@ -74,38 +74,34 @@ class BlueColr
       @db
     end
 
-    # default options to use when launching a process - every field maps to a
+    # Default options to use when launching a process - every field maps to a
     # column in process_items table
     def default_options
       @default_options ||= OpenStruct.new
     end
 
-    # local hash used to store misc runtime options
+    # Local hash used to store misc runtime options
     def options
       @options ||= OpenStruct.new
     end
 
+    # Map of states that processes pass through (Pending -> Running -> Ok / Error)
     def statemap
       @statemap ||= conf['statemap'] || DEFAULT_STATEMAP
     end
 
-    def sequential &block
-      self.new.sequential &block
-    end
+#    # Create new sequential block (see instance method with the same name)
+#    def sequential &block
+#      self.new.sequential &block
+#    end
 
-    def parallel &block
-      self.new.parallel &block
-    end
+#    # Create new parallel block (see instance method with the same name)
+#    def parallel &block
+#      self.new.parallel &block
+#    end
 
-    # set custom commandline parameters from parent script, will be called upon
-    # command line parameter extraction
-    def custom_args &block
-      @custom_args_block = block
-    end
-
-    # launch a set of tasks, provided within a given block
+    # Usually the root method for launcing a set of tasks.
     def launch &block
-
       worker = self.new
       db.transaction do
         worker.instance_eval &block
@@ -113,12 +109,15 @@ class BlueColr
       worker
     end
 
-    # run a set of tasks (launch it and wait until the last one finishes). exit with returned exitcode.
+    # Run a set of tasks (launch it and wait until the last one finishes). exit with returned exitcode.
     def run &block
       worker = launch &block
       exit worker.wait
     end
 
+    # Parse command line arguments. You should call it explicitly if you need to submit some
+    # additional custom parameters. Otherwise it will be called automatically in order to get
+    # parameters needed for running, such as database connection string.
     def parse_command_line &block
       data = {}
 
@@ -152,7 +151,7 @@ class BlueColr
 
     # state related methods
     
-    # get the next state from pending, given current state and state of all "parent" processes
+    # Get the next state from pending, given current state and state of all "parent" processes
     def state_from_pending current_state, parent_states
       new_state, _ = self.statemap['on_pending'][current_state].find { |_, required_parent_states|
         (parent_states - required_parent_states).empty?
@@ -160,49 +159,37 @@ class BlueColr
       new_state
     end
 
-    # get the next state from running, given current state and whether the command has finished successfully
+    # Get the next state from running, given current state and whether the command has finished successfully
     def state_from_running current_state, ok
       self.statemap['on_running'][current_state][ok ? 'ok' : 'error']
     end
 
-    # get the next state to get upon restart, given the current state
+    # Get the next state to get upon restart, given the current state
     def state_on_restart current_state
       self.statemap['on_restart'][current_state]
     end
 
-    # get all possible pending states
+    # Get all possible pending states
     def get_pending_states
       self.statemap['on_pending'].map{|state, _| state}
     end
 
-    # get all possible error states
+    # Get all possible error states
     def get_error_states
       self.statemap['on_running'].map{|_, new_states| new_states['error']}
     end
 
-    # get all possible ok states
+    # Get all possible ok states
     def get_ok_states
       self.statemap['on_running'].map{|_, new_states| new_states['ok']}
     end
 
   end # class methods
 
-  attr_reader :all_ids, :result
+  #
+  #attr_reader :all_ids
+  attr_reader :result
 
-  def initialize type = :sequential, waitfor = []
-    @type = type
-    @waitfor = waitfor
-    @result = []
-    @all_ids = [] # list of all ids of processes enqueued, used if waiting
-  end
-
-  def db
-    self.class.db
-  end
-
-  def log
-    self.class.log
-  end
 
   # All processes enqueued within the given block should be executed sequentially,
   # i.e. one after another.
@@ -214,19 +201,6 @@ class BlueColr
   # (not waiting for each other to finish).
   def parallel &block
     exec :parallel, &block
-  end
-
-  def exec type = :sequential, &block
-    g = self.class.new type, @waitfor
-    g.instance_eval &block
-    ids = g.result
-    if @type == :sequential
-      @waitfor = ids
-      @result = ids
-    else
-      @result += ids
-    end
-    @result
   end
 
   def enqueue cmd, waitfor = [], opts = {}
@@ -247,7 +221,7 @@ class BlueColr
     id
   end
 
-  # Enqueue a single command +cmd+.
+  # Enqueues a single command +cmd+.
   #
   # == Parameters
   # cmd::
@@ -267,7 +241,9 @@ class BlueColr
     @result
   end
 
-  # wait for all enqueued processes to finish
+  # Waits for all enqueued processes to finish. The default behaviour for BlueColr is to enqueue commands
+  # and exit. If for any reason you need to wait for the commands to finish execution, you can call this method
+  # which will wait until all enqueued processes are finished (either with Ok or error state).
   def wait
     log.info 'Waiting for all processes to finish'
     loop do
@@ -277,5 +253,35 @@ class BlueColr
       return 0 if not_ok_count == 0 # all ok, finish
       sleep 10
     end
+  end
+
+  private
+
+  def initialize type = :sequential, waitfor = []
+    @type = type
+    @waitfor = waitfor
+    @result = []
+    @all_ids = [] # list of all ids of processes enqueued, used if waiting
+  end
+
+  def db
+    self.class.db
+  end
+
+  def log
+    self.class.log
+  end
+
+  def exec type = :sequential, &block
+    g = self.class.new type, @waitfor
+    g.instance_eval &block
+    ids = g.result
+    if @type == :sequential
+      @waitfor = ids
+      @result = ids
+    else
+      @result += ids
+    end
+    @result
   end
 end
