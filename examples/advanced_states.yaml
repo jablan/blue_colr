@@ -1,0 +1,107 @@
+db_url: sqlite://examples/test.db
+
+log4r_config:
+
+  # define all loggers ...
+  loggers:
+    # default logger is kind of mandatory
+    - name      : default
+      level     : INFO
+      trace     : 'false'
+      outputters:
+        - stdout
+        - logfile
+
+  # define all outputters (incl. formatters)      
+  outputters:
+    - type     : StdoutOutputter
+      name     : stdout
+#      level    : INFO
+      formatter:
+        date_pattern: '%Y-%m-%d %H:%M:%S'
+        pattern     : '%d %l: %m '
+        type        : PatternFormatter
+
+    - type        : FileOutputter
+      name        : logfile
+#      level       : INFO
+      trunc       : 'false'
+      filename: "#{LOGFILENAME}"
+      formatter   :
+        date_pattern: '%Y-%m-%d %H:%M:%S'
+        pattern     : '%d %l: %m'
+        type        : PatternFormatter
+
+statemap:
+
+  on_pending:
+    pending:
+      -
+        - running
+        -
+          - ok
+          - ok_clean
+          - ok_nm
+      -
+        - running_dirty
+        -
+          - error_skipped
+          - skipped
+          - ok_nm
+          - ok_dirty
+          - ok
+
+    # not mandatory
+    pending_nm:
+      -
+        - running_nm
+        -
+          - ok
+          - ok_clean
+          - ok_nm
+      -
+        - running_nm_dirty
+        -
+          - error_skipped
+          - skipped
+          - ok_dirty
+          - ok_nm
+          - ok
+
+    pending_clean:
+      -
+        - running_clean
+        -
+          - ok
+          - ok_clean
+
+  on_running:
+    running:
+      error: error
+      ok: ok
+
+    running_dirty:
+      error: error
+      ok: ok_dirty
+
+    running_nm:
+      error: error_skipped
+      ok: ok_nm
+
+    running_clean:
+      error: error_clean
+      ok: ok_clean
+
+    running_nm_dirty:
+      error: error_skipped
+      ok: ok_nm_dirty
+
+  on_restart:
+    error: pending
+    error_skipped: pending_nm
+    error_clean: pending_clean
+    ok: pending
+    ok_dirty: pending
+    ok_nm_dirty: pending_nm
+    ok_nm: pending_nm
+    ok_clean: pending_clean

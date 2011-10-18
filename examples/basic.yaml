@@ -1,0 +1,34 @@
+db_url: sqlite://examples/test.db
+
+log4r_config:
+
+  # define all loggers ...
+  loggers:
+    # default logger is kind of mandatory
+    - name      : default
+      level     : INFO
+      trace     : 'false'
+      outputters:
+        - stdout
+        - logfile
+
+  # define all outputters (incl. formatters)      
+  outputters:
+    - type     : StdoutOutputter
+      name     : stdout
+#      level    : INFO
+      formatter:
+        date_pattern: '%Y-%m-%d %H:%M:%S'
+        pattern     : '%d %l: %m '
+        type        : PatternFormatter
+
+    - type        : FileOutputter
+      name        : logfile
+#      level       : INFO
+      trunc       : 'false'
+      filename: test.log
+      formatter   :
+        date_pattern: '%Y-%m-%d %H:%M:%S'
+        pattern     : '%d %l: %m'
+        type        : PatternFormatter
+

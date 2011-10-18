@@ -8,8 +8,8 @@ require 'blue_colr'
 BlueColr.log = Logger.new(STDOUT)
 cmd = ''
 
-BlueColr.custom_args do |opts|
-  opts.banner = "Usage: bcrun [options]"
+BlueColr.parse_command_line do |opts|
+#  opts.banner = "Usage: #{File.basename(__FILE__)} [options]"
 
   opts.on("-x cmd", "--execute command", "Command to execute (enclose in quotes if contains parameters)") do |command|
     cmd = command

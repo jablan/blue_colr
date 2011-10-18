@@ -23,7 +23,7 @@ def logger(name = nil)
 end
 
 def init_logger
-  if @conf['log4r_config']
+  if Module::const_defined?(:Log4r) && @conf['log4r_config']
     log_cfg = Log4r::YamlConfigurator # shorthand
     log_cfg['ENVIRONMENT'] = @environment if @environment
     log_cfg['LOGFILENAME'] = @log_file
@@ -33,7 +33,7 @@ def init_logger
 
     @logger = Log4r::Logger
   else
-    @logger = {'default' => Logger.new(@log_file)}
+    @logger = {'default' => Logger.new(@log_file || STDOUT)}
   end
   logger.level = @args['debuglevel'] || Logger::WARN
 end
@@ -82,15 +82,15 @@ def ok_to_run?
 #  !@args['max'] || @pids.size < @args['max']
 end
 
-def run process
-  logger.debug "Running #{process[:module_name]}"
+def run process, running_state
+  logger.debug "Running process ##{process[:id]}:"
   script = process[:cmd]
   logger.debug script
   id = process[:id]
 
   # update process item in the db
   # set status of process_item to "running"
-  @db[:process_items].filter(:id => id).update(:status => BlueColr::STATUS_RUNNING, :started_at => Time.now)
+  @db[:process_items].filter(:id => id).update(:status => running_state, :started_at => Time.now)
 
   log_path = @conf['log_path'] || '.'
   log_path = (process[:process_from] || Time.now).strftime(log_path) # interpolate date
@@ -111,16 +111,17 @@ def run process
       exitstatus = 99
     end
 
+    final_state = BlueColr.state_from_running(running_state, ok)
     # find corresponding process_item
     # change its status in the DB and update ended_at timestamp
     @db[:process_items].filter(:id => process[:id]).update(
-      :status => ok ? BlueColr::STATUS_OK : BlueColr::STATUS_ERROR,
+      :status => final_state,
       :exit_code => exitstatus,
       :ended_at => Time.now
     )
-    logger(process[:logger]).error(@error_log_msg % process.to_hash) unless ok
+#    logger(process[:logger]).error(@error_log_msg % process.to_hash) unless ok
 
-    logger.info "Process ended: id #{process[:id]} #{$?}"
+#    logger.info "Process ended: id #{process[:id]} #{$?}"
   end
 end
 
@@ -129,16 +130,17 @@ end
 # pid => process, hash of started processes
 @pids = {}
 
-  @args = parse_command_line(ARGV)
+@args = parse_command_line(ARGV)
 
-  raise "No configuration file defined (-c <config>)." unless @args && @args["config"]
-  raise "Couldn't read #{@args["config"]} file." unless @args['config'] && @conf = YAML::load(File.new(@args["config"]).read)
-  @max_processes = @args['max'] || @conf['max_processes'] || 0 # default unlimited
-  @environment = @args['environment'] || @conf['environment'] || nil
-  @log_file = @args['logfile'] || "process_daemon_#{@environment}"
-  @error_log_msg = @conf['error_log_msg'] || 'Process failed: id %{id}'
+raise "No configuration file defined (-c <config>)." unless @args && @args["config"]
+raise "Couldn't read #{@args["config"]} file." unless @args['config'] && @conf = YAML::load(File.new(@args["config"]).read)
+BlueColr.conf = @conf
+@max_processes = @args['max'] || @conf['max_processes'] || 0 # default unlimited
+@environment = @args['environment'] || @conf['environment'] || nil
+@log_file = @args['logfile'] || "process_daemon_#{@environment}.log"
+@error_log_msg = @conf['error_log_msg'] || 'Process failed: id %{id}'
 
-  init_logger
+init_logger
 
 begin
   @db = Sequel.connect(@conf['db_url'], :logger => logger('sequel')) # try to use sequel logger, if defined
@@ -147,34 +149,40 @@ begin
 
   loop do
     # get all pending items
-    query = "select i.id
-from process_items i
-left join process_item_dependencies d ON i.id = d.process_item_id
-left join process_items i2 ON d.depends_on_id = i2.id and i2.status NOT IN ('#{BlueColr::STATUS_OK}', '#{BlueColr::STATUS_SKIPPED}')
-where i.status = '#{BlueColr::STATUS_PENDING}' and i.environment = ?
-group by i.id
-having count(i2.id) = 0"
-    process_items = @db[query, @environment]
+    pending_processes = @db[:process_items].filter(:status => BlueColr.get_pending_states).filter(:environment => @environment).all
+    pending_processes = pending_processes.map do |process|
+      # get all the parents' statuses
+      parent_statuses = @db[:process_items].
+        join(:process_item_dependencies, :depends_on_id => :id).
+        filter(:process_item_id => process[:id]).
+        select(:status).
+        map{|h| h[:status]}
 
-    process_items.each do |id|
-      logger.debug "Pending item: #{id.inspect}"
+      running_status = BlueColr.state_from_pending(process[:status], parent_statuses)
+      [process, running_status]
+    end
+
+    pending_processes.select{|_, running_status| running_status}.each do |process, running_status|
+      logger.debug "Pending item: #{process[:id]}"
       if ok_to_run?
-        item = @db[:process_items].filter(:id => id[:id]).first
-        run(item)
+#          item = @db[:process_items].filter(:id => id[:id]).first
+        run(process, running_status)
       else
         logger.debug "No available thread, waiting"
       end
-    end
-    sleep(@conf['sleep_interval'] || 10)
-  end
 
-rescue Interrupt
-  if logger
-    logger.fatal("Ctrl-C received, exiting")
-  else
-    puts "Ctrl-C received, exiting"
-  end
-  exit 1
+    end
+    Kernel.sleep 5
+#    Kernel.sleep(@conf['sleep_interval'] || 10)
+  end # loop
+
+#rescue Interrupt
+#  if logger
+#    logger.fatal("Ctrl-C received, exiting")
+#  else
+#    puts "Ctrl-C received, exiting"
+#  end
+#  exit 1
 rescue Exception => ex
   p ex.class
   logger.fatal(ex.to_s) if logger
