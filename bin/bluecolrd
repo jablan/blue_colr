@@ -119,9 +119,8 @@ def run process, running_state
       :exit_code => exitstatus,
       :ended_at => Time.now
     )
-#    logger(process[:logger]).error(@error_log_msg % process.to_hash) unless ok
-
-#    logger.info "Process ended: id #{process[:id]} #{$?}"
+    logger.info "Process ended: id #{process[:id]} #{$?}"
+    logger.error(@error_log_msg % process.to_hash) unless ok
   end
 end
 
@@ -184,7 +183,6 @@ begin
 #  end
 #  exit 1
 rescue Exception => ex
-  p ex.class
   logger.fatal(ex.to_s) if logger
   puts "#{ex.to_s} ==>"
   puts ex.backtrace.join("\n")
