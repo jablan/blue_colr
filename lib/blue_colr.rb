@@ -43,15 +43,18 @@ class BlueColr
     # Configuration hash read from yaml config file
     def conf
       unless @conf
-        parse_command_line unless @args
+        if @db_url || @db # skip loading config if db set explicitly
+          @conf = {}
+        else
+          parse_command_line unless @args
 
-        raise "No configuration file defined (-c <config>)." if @args["config"].nil?
-        raise "Couldn't read #{@args["config"]} file." unless @args['config'] && @conf = YAML::load(File.new(@args["config"]).read)
-
-        # setting default options that should be written along with all the records to process_items
-        if @conf['default_options']
-          @conf['default_options'].each do |k,v|
-            default_options.send("#{k}=", v)
+          raise "No configuration file defined (-c <config>)." if @args["config"].nil?
+          raise "Couldn't read #{@args["config"]} file." unless @args['config'] && @conf = YAML::load(File.new(@args["config"]).read)
+          # setting default options that should be written along with all the records to process_items
+          if @conf['default_options']
+            @conf['default_options'].each do |k,v|
+              default_options.send("#{k}=", v)
+            end
           end
         end
       end
