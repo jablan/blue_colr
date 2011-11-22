@@ -189,8 +189,8 @@ class BlueColr
 
   end # class methods
 
-  #
-  #attr_reader :all_ids
+  # Use to access the list of ids of all processes that were enqueued
+  attr_reader :all_ids
   attr_reader :result
 
 
