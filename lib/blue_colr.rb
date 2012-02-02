@@ -5,6 +5,7 @@ require 'ostruct'
 require 'optparse'
 require 'yaml'
 require 'sequel'
+require 'json'
 
 # This class provides a DSL for enqueuing processes, at the same time describing their mutual dependance.
 class BlueColr
@@ -53,6 +54,12 @@ class BlueColr
           # setting default options that should be written along with all the records to process_items
           if @conf['default_options']
             @conf['default_options'].each do |k,v|
+              default_options.send("#{k}=", v)
+            end
+          end
+
+          if @args['params']
+            @args['params'].each do |k, v|
               default_options.send("#{k}=", v)
             end
           end
@@ -129,6 +136,10 @@ class BlueColr
 
         opts.on("-c CONFIG", "--conf CONFIG", "YAML config file") do |config|
           data["config"] = config
+        end
+
+        opts.on("-p PARAMS", "--params PARAMS", "Additional default options - key: value as JSON string, override values from config file") do |params|
+          data["params"] = JSON.parse(params)
         end
 
         # process custom args, if given

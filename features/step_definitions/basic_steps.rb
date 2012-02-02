@@ -91,3 +91,13 @@ Then /^all tasks should be executed within (\d+) to (\d+) seconds$/ do |time_min
   (time_min..time_max).should === total
 end
 
+# bcrun
+
+When /^I start bcrun with argument (.*)$/ do |arg|
+  Kernel.system("./bin/bcrun -x true -c examples/basic.yaml #{arg}")
+end
+
+Then /^I should see one task in environment "([^"]*)"$/ do |env|
+  DB[:process_items].filter(:environment => env).count.should > 0
+end
+
