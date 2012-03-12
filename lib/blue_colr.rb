@@ -111,8 +111,8 @@ class BlueColr
 #    end
 
     # Usually the root method for launcing a set of tasks.
-    def launch &block
-      worker = self.new
+    def launch opts = {}, &block
+      worker = BlueColr.new(:sequential, [], opts)
       db.transaction do
         worker.instance_eval &block
       end
@@ -207,19 +207,19 @@ class BlueColr
 
   # All processes enqueued within the given block should be executed sequentially,
   # i.e. one after another.
-  def sequential &block
-    exec :sequential, &block
+  def sequential opts = {}, &block
+    exec :sequential, opts, &block
   end
 
   # All processes enqueued within the given block should be executed in parallel
   # (not waiting for each other to finish).
-  def parallel &block
-    exec :parallel, &block
+  def parallel opts = {}, &block
+    exec :parallel, opts, &block
   end
 
   def enqueue cmd, waitfor = [], opts = {}
     id = nil
-    opts = {status: DEFAULT_PENDING_STATE}.merge(opts)
+    opts = {status: DEFAULT_PENDING_STATE}.merge(@opts).merge(opts)
     def_opts = self.class.default_options.send(:table) # convert from OpenStruct to Hash
     # rejecting fields that do not have corresponding column in the table:
     fields = def_opts.merge(opts).select{|k,_| db[:process_items].columns.member? k}
@@ -271,11 +271,12 @@ class BlueColr
 
   private
 
-  def initialize type = :sequential, waitfor = []
+  def initialize type = :sequential, waitfor = [], opts = {}
     @type = type
     @waitfor = waitfor
     @result = []
     @all_ids = [] # list of all ids of processes enqueued, used if waiting
+    @opts = opts
   end
 
   def db
@@ -286,8 +287,8 @@ class BlueColr
     self.class.log
   end
 
-  def exec type = :sequential, &block
-    g = self.class.new type, @waitfor
+  def exec type = :sequential, opts = {}, &block
+    g = self.class.new type, @waitfor, opts
     g.instance_eval &block
     ids = g.result
     if @type == :sequential

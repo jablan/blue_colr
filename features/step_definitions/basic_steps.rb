@@ -101,3 +101,16 @@ Then /^I should see one task in environment "([^"]*)"$/ do |env|
   DB[:process_items].filter(:environment => env).count.should > 0
 end
 
+When /^I start sequence of (\d+) tasks with field "([^"]*)" with value "([^"]*)"$/ do |num_tasks, field, value|
+  BlueColr.launch({field.to_sym => value}) do
+    num_tasks.times do
+      run "true"
+    end
+  end
+end
+
+Then /^all (\d+) tasks should have field "([^"]*)" with value "([^"]*)"$/ do |num_tasks, field, value|
+  DB[:process_items].count.should == num_tasks
+  DB[:process_items].filter({field.to_sym => value}).count.should == num_tasks
+end
+
