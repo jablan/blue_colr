@@ -2,10 +2,14 @@ require 'set'
 
 class BlueColr
 
+  # Provides support for setting explicit dependencies, as opposed using
+  # +sequential+ and +parallel+ blocks to set them. Check out
+  # +dependencies.rb+ in +examples/+ to see how it works.
   class Graph
     class Node
+      # db id got when inserted the task
       attr_accessor :id
-      attr_reader :deps, :opts
+      attr_reader :deps, :opts, :name
 
       def initialize name, cmd, opts = {}
         @opts = opts
@@ -34,6 +38,7 @@ class BlueColr
 
     class Group
       attr_accessor :tasks
+      attr_reader :opts
 
       def initialize name, opts = {}
         @tasks = Set.new
@@ -45,20 +50,19 @@ class BlueColr
 
     def initialize opts
       @groups = {}
-      @nodes = {}
+      @tasks = {}
 
       @deps = {}
       @group_stack = []
     end
 
     def task name, cmd, opts = {}
-      node = Node.new(name, cmd, opts)
       group = @group_stack.last
-      if group
-        opts = group.opts.merge(opts)
-        group.tasks << node
-      end
-      @nodes[name] = node
+#      puts "#{name}: #{group}"
+      opts = group.opts.merge(opts) if group
+      node = Node.new(name, cmd, opts)
+      group.tasks << node if group
+      @tasks[name] = node
     end
 
     def depends hash
@@ -73,13 +77,14 @@ class BlueColr
       @groups[name] = g
       @group_stack.push(g)
       yield
+      @group_stack.pop
     end
 
     def resolve_deps
       # resolve groups in dependencies first
       @deps.each do |one, others|
         # resolve left
-        if task = @nodes[one]
+        if task = @tasks[one]
           tasks = [task]
         elsif group = @groups[one]
           tasks = @tasks.values_at(*group.tasks)
@@ -89,26 +94,31 @@ class BlueColr
 
         # resolve right
         resolved_others = others.each_with_object(Set.new){|other, acc_rs|
-          if task = @nodes[other]
+          if task = @tasks[other]
             acc_rs << task
           elsif group = @groups[other]
-            acc_rs += @tasks.values_at(*group.tasks)
+#            puts "tasks: #{group.tasks.to_a}"
+            acc_rs.merge(group.tasks)
           else
             raise "Unknown task or group #{other}"
           end
         }
         tasks.each do |task|
+#          puts "#{task.name} depends on #{resolved_others.to_a}"
           task.depends(*resolved_others)
         end
       end
     end
 
     def enqueue worker
-      deps = resolve_deps
+#      puts "Tasks: #{@tasks}"
+#      puts "Groups: #{@groups}"
+#      puts "Deps: #{@deps}"
+      resolve_deps
 
       BlueColr.log.info 'Graph#enqueue'
-      while !@nodes.values.all?(&:queued?)
-        to_enqueue = @nodes.values.find{|node|
+      while !@tasks.values.all?(&:queued?)
+        to_enqueue = @tasks.values.find{|node|
           # first node which has all dependencies queued already
           !node.queued? && node.deps.all?(&:queued?)
         }
