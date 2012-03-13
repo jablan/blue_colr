@@ -7,6 +7,8 @@ require 'yaml'
 require 'sequel'
 require 'json'
 
+require 'lib/graph'
+
 # This class provides a DSL for enqueuing processes, at the same time describing their mutual dependance.
 class BlueColr
 
@@ -117,6 +119,16 @@ class BlueColr
         worker.instance_eval &block
       end
       worker
+    end
+
+    # Graph (explicit dependencies) based interface
+    def graph opts = {}, &block
+      worker = BlueColr.new(:sequential, [], opts)
+      db.transaction do
+        graph = BlueColr::Graph.new(opts)
+        graph.instance_eval &block
+        graph.enqueue(worker)
+      end
     end
 
     # Run a set of tasks (launch it and wait until the last one finishes). exit with returned exitcode.
