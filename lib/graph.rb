@@ -48,9 +48,10 @@ class BlueColr
 
     end
 
-    def initialize opts
+    def initialize opts = {}
       @groups = {}
       @tasks = {}
+      @opts = opts
 
       @deps = {}
       @group_stack = []
@@ -59,10 +60,12 @@ class BlueColr
     def task name, cmd, opts = {}
       group = @group_stack.last
 #      puts "#{name}: #{group}"
-      opts = group.opts.merge(opts) if group
-      node = Node.new(name, cmd, opts)
+      task_opts = @opts.dup # start with root options
+      task_opts = task_opts.merge(group.opts) if group # merge in group options
+      task_opts[:group] = group.name if group
+      task_opts = task_opts.merge(opts) # merge in specific task options
+      node = Node.new(name, cmd, task_opts)
       group.tasks << node if group
-      node.opts[:group] = group.name if group
       @tasks[name] = node
     end
 
@@ -91,7 +94,7 @@ class BlueColr
         if task = @tasks[one]
           tasks = [task]
         elsif group = @groups[one]
-          tasks = @tasks.values_at(*group.tasks)
+          tasks = group.tasks
         else
           raise "Unknown task or group #{one}"
         end
@@ -101,23 +104,18 @@ class BlueColr
           if task = @tasks[other]
             acc_rs << task
           elsif group = @groups[other]
-#            puts "tasks: #{group.tasks.to_a}"
             acc_rs.merge(group.tasks)
           else
             raise "Unknown task or group #{other}"
           end
         }
         tasks.each do |task|
-#          puts "#{task.name} depends on #{resolved_others.to_a}"
           task.depends(*resolved_others)
         end
       end
     end
 
     def enqueue worker
-#      puts "Tasks: #{@tasks}"
-#      puts "Groups: #{@groups}"
-#      puts "Deps: #{@deps}"
       resolve_deps
 
       BlueColr.log.info 'Graph#enqueue'

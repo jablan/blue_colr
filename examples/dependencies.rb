@@ -1,6 +1,6 @@
 require 'blue_colr'
 
-BlueColr.graph do
+BlueColr.tasks do
   group :g1 do
     task :foo, 'echo foo'
     task :bar, 'echo bar'

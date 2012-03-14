@@ -122,7 +122,7 @@ class BlueColr
     end
 
     # Graph (explicit dependencies) based interface
-    def graph opts = {}, &block
+    def tasks opts = {}, &block
       worker = BlueColr.new(:sequential, [], opts)
       db.transaction do
         graph = BlueColr::Graph.new(opts)
