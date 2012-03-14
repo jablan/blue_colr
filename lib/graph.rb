@@ -48,6 +48,19 @@ class BlueColr
 
     end
 
+    # class methods
+
+    def self.launch(opts = {}, &block)
+      worker = BlueColr.new(:sequential, [], opts)
+      BlueColr.db.transaction do
+        graph = BlueColr::Graph.new(opts)
+        graph.instance_eval &block
+        graph.enqueue(worker)
+      end
+    end
+
+    # instance methods
+
     def initialize opts = {}
       @groups = {}
       @tasks = {}
@@ -84,6 +97,24 @@ class BlueColr
       @group_stack.pop
     end
 
+    def enqueue worker
+      resolve_deps
+
+      BlueColr.log.info 'Graph#enqueue'
+      while !@tasks.values.all?(&:queued?)
+        to_enqueue = @tasks.values.find{|node|
+          # first node which has all dependencies queued already
+          !node.queued? && node.deps.all?(&:queued?)
+        }
+        raise "circular deps?" unless to_enqueue
+        depends_on_ids = to_enqueue.deps.map(&:id)
+        id = worker.enqueue(to_enqueue.cmd, depends_on_ids, to_enqueue.opts)
+        to_enqueue.id = id
+      end
+    end
+
+    private
+
     # As the user can specify both groups and tasks both in the left
     # or right side of dependency relation, we have to resolve before
     # queueing to the database (replace groups with belonging tasks)
@@ -112,22 +143,6 @@ class BlueColr
         tasks.each do |task|
           task.depends(*resolved_others)
         end
-      end
-    end
-
-    def enqueue worker
-      resolve_deps
-
-      BlueColr.log.info 'Graph#enqueue'
-      while !@tasks.values.all?(&:queued?)
-        to_enqueue = @tasks.values.find{|node|
-          # first node which has all dependencies queued already
-          !node.queued? && node.deps.all?(&:queued?)
-        }
-        raise "circular deps?" unless to_enqueue
-        depends_on_ids = to_enqueue.deps.map(&:id)
-        id = worker.enqueue(to_enqueue.cmd, depends_on_ids, to_enqueue.opts)
-        to_enqueue.id = id
       end
     end
 

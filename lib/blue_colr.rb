@@ -121,16 +121,6 @@ class BlueColr
       worker
     end
 
-    # Graph (explicit dependencies) based interface
-    def tasks opts = {}, &block
-      worker = BlueColr.new(:sequential, [], opts)
-      db.transaction do
-        graph = BlueColr::Graph.new(opts)
-        graph.instance_eval &block
-        graph.enqueue(worker)
-      end
-    end
-
     # Run a set of tasks (launch it and wait until the last one finishes). exit with returned exitcode.
     def run &block
       worker = launch &block

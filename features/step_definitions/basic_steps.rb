@@ -136,7 +136,7 @@ When /^I enqueue$/ do
   cuke_tasks = @cuke_tasks
   cuke_deps = @cuke_deps
   cuke_groups = @cuke_groups
-  BlueColr.tasks do
+  BlueColr::Graph.launch do
     cuke_groups.each do |group_name, tasks|
       group group_name do
         tasks.each do |name, cmd|
