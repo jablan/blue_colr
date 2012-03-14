@@ -114,3 +114,44 @@ Then /^all (\d+) tasks should have field "([^"]*)" with value "([^"]*)"$/ do |nu
   DB[:process_items].filter({field.to_sym => value}).count.should == num_tasks
 end
 
+# explicit dependencies
+Given /^I have task "([^"]*)" which does "([^"]*)"$/ do |name, cmd|
+  @cuke_tasks ||= []
+  @cuke_tasks << [name.to_sym, cmd]
+end
+
+Given /^"([^"]*)" depends on "([^"]*)"$/ do |left, right|
+  @cuke_deps ||= []
+  @cuke_deps << [left.to_sym, right.to_sym]
+end
+
+When /^I enqueue$/ do
+  cuke_tasks = @cuke_tasks
+  cuke_deps = @cuke_deps
+  BlueColr.graph do
+    p cuke_tasks
+    cuke_tasks.each do |name, cmd|
+      task name, cmd
+    end
+    cuke_deps.each do |left, right|
+      depends left => right
+    end
+  end
+end
+
+Then /^there will be (\d+) process_items$/ do |count|
+  DB[:process_items].count.should == count
+end
+
+Then /^process which does "([^"]*)" will have no dependencies$/ do |cmd|
+  id = DB[:process_items].filter(:cmd => cmd).first[:id]
+  DB[:process_item_dependencies].filter(:process_item_id => id).count.should == 0
+end
+
+Then /^process which does "([^"]*)" will depend on one which does "([^"]*)"$/ do |cmd_l, cmd_r|
+  id_l = DB[:process_items].filter(:cmd => cmd_l).first[:id]
+  id_r = DB[:process_items].filter(:cmd => cmd_r).first[:id]
+  DB[:process_item_dependencies].filter(:process_item_id => id_l).count.should == 1
+  DB[:process_item_dependencies].filter(:process_item_id => id_l).first[:depends_on_id].should == id_r
+end
+

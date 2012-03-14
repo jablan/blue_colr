@@ -38,7 +38,7 @@ class BlueColr
 
     class Group
       attr_accessor :tasks
-      attr_reader :opts
+      attr_reader :opts, :name
 
       def initialize name, opts = {}
         @tasks = Set.new
@@ -62,6 +62,7 @@ class BlueColr
       opts = group.opts.merge(opts) if group
       node = Node.new(name, cmd, opts)
       group.tasks << node if group
+      node.opts[:group] = group.name if group
       @tasks[name] = node
     end
 
@@ -80,6 +81,9 @@ class BlueColr
       @group_stack.pop
     end
 
+    # As the user can specify both groups and tasks both in the left
+    # or right side of dependency relation, we have to resolve before
+    # queueing to the database (replace groups with belonging tasks)
     def resolve_deps
       # resolve groups in dependencies first
       @deps.each do |one, others|
