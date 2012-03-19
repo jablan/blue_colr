@@ -1,4 +1,5 @@
 require 'blue_colr'
+require 'blue_colr/graph'
 
 BlueColr::Graph.launch do
   group :g1 do

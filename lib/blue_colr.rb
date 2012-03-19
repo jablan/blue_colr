@@ -7,8 +7,6 @@ require 'yaml'
 require 'sequel'
 require 'json'
 
-require 'lib/graph'
-
 # This class provides a DSL for enqueuing processes, at the same time describing their mutual dependance.
 class BlueColr
 
