@@ -75,7 +75,7 @@ class BlueColr
 #      puts "#{name}: #{group}"
       task_opts = @opts.dup # start with root options
       task_opts = task_opts.merge(group.opts) if group # merge in group options
-      task_opts[:group] = group.name if group
+      task_opts[:group] = group.name.to_s if group
       task_opts = task_opts.merge(opts) # merge in specific task options
       node = Node.new(name, cmd, task_opts)
       group.tasks << node if group
