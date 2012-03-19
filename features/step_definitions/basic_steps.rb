@@ -1,6 +1,7 @@
 require 'sequel'
-require 'blue_colr'
 require 'rspec'
+require 'blue_colr'
+require 'blue_colr/graph'
 
 Before do
   db_uri = 'sqlite://examples/test.db'
